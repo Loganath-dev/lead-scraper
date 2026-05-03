@@ -285,7 +285,7 @@ export default function Dashboard() {
             </div>
             <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
               <div className="bg-emerald-500 h-full transition-all duration-1000" style={{ 
-                width: `${Math.min(((profile?.credits_remaining || 0) / (profile?.subscription_tier === 'pro' ? 6000 : profile?.subscription_tier === 'starter' ? 3000 : 80)) * 100, 100)}%` 
+                width: `${Math.min(((profile?.credits_remaining || 0) / (profile?.subscription_tier === 'pro' ? 2500 : profile?.subscription_tier === 'starter' ? 1000 : 80)) * 100, 100)}%` 
               }}></div>
             </div>
           </div>

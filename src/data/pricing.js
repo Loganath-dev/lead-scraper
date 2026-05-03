@@ -15,7 +15,7 @@ export const PRICING = [
   {
     name: "Starter",
     price: "$4",
-    leads: "3,000 leads/mo",
+    leads: "1,000 verified leads/mo",
     features: [
       "Everything in Free",
       "CSV export",
@@ -31,7 +31,7 @@ export const PRICING = [
   {
     name: "Pro",
     price: "$8",
-    leads: "6,000 leads/mo",
+    leads: "2,500 verified leads/mo",
     features: [
       "Everything in Starter",
       "High Priority Clients",
