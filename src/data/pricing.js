@@ -1,0 +1,47 @@
+export const PRICING = [
+  {
+    name: "Free",
+    price: "$0",
+    leads: "100 leads/mo",
+    features: [
+      "Basic scoring",
+      "50 leads per search",
+      "2 searches per month",
+    ],
+    cta: "Start Free",
+    premium: false,
+    popular: false,
+  },
+  {
+    name: "Starter",
+    price: "$4",
+    leads: "3,000 leads/mo",
+    features: [
+      "Everything in Free",
+      "CSV export",
+      "High Priority Clients",
+      "Advanced Metrics",
+      "Custom lead count",
+      "Beginner guides",
+    ],
+    cta: "Go Starter",
+    premium: true,
+    popular: true,
+  },
+  {
+    name: "Pro",
+    price: "$8",
+    leads: "6,000 leads/mo",
+    features: [
+      "Everything in Starter",
+      "High Priority Clients",
+      "Advanced Metrics",
+      "Website audit reports",
+      "Saved lead lists",
+      "Priority support",
+    ],
+    cta: "Go Pro",
+    premium: true,
+    popular: false,
+  },
+];
