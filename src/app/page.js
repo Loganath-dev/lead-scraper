@@ -15,6 +15,7 @@ const PRICING = [
       "Basic scoring",
       "50 leads per search",
       "2 searches per month",
+      "Beginner guides",
     ],
     cta: "Start Free",
     premium: false,
@@ -22,8 +23,8 @@ const PRICING = [
   },
   {
     name: "Starter",
-    price: "$3",
-    leads: "3,000 leads/mo",
+    price: "$4",
+    leads: "1,000 verified leads/mo",
     features: [
       "Everything in Free",
       "CSV export",
@@ -38,8 +39,8 @@ const PRICING = [
   },
   {
     name: "Pro",
-    price: "$6",
-    leads: "6,000 leads/mo",
+    price: "$8",
+    leads: "2,500 verified leads/mo",
     features: [
       "Everything in Starter",
       "High Priority Clients",
@@ -125,6 +126,7 @@ export default function Home() {
                   className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-medium"
                   value={search.query}
                   onChange={e => setSearch({ ...search, query: e.target.value })}
+                  suppressHydrationWarning
                 />
               </div>
               <div className="flex-1 relative">
@@ -135,9 +137,10 @@ export default function Home() {
                   className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-medium"
                   value={search.location}
                   onChange={e => setSearch({ ...search, location: e.target.value })}
+                  suppressHydrationWarning
                 />
               </div>
-              <button type="submit" className="btn btn-primary px-8 whitespace-nowrap shadow-lg shadow-emerald-200">
+              <button type="submit" suppressHydrationWarning className="btn btn-primary px-8 whitespace-nowrap shadow-lg shadow-emerald-200">
                 Find Leads
               </button>
             </form>

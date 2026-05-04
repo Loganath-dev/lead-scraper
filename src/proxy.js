@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 // Lightweight in-memory store for rate limiting (Edge compatible)
 const rateLimitCache = new Map();
 
-export function middleware(request) {
+export function proxy(request) {
   const response = NextResponse.next();
 
   // 1. Enforce Security Headers

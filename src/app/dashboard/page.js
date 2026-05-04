@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Search, MapPin, Zap, ExternalLink, Download, Filter, Share2, Copy, CheckCircle2, BookOpen, LogOut, Plus, ChevronDown, ChevronUp, Star, X, Bookmark, Mail, Phone, Globe, BarChart3, Shield, Bell, ArrowUpCircle, Home, Settings, History } from 'lucide-react';
+import { Search, MapPin, Zap, ExternalLink, Download, Filter, Share2, Copy, CheckCircle2, BookOpen, LogOut, Plus, ChevronDown, ChevronUp, Star, X, Bookmark, Mail, Phone, Globe, BarChart3, Shield, Bell, ArrowUpCircle, Home, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BeginnerGuides from '@/components/BeginnerGuides';
 import { useRouter } from 'next/navigation';
@@ -45,6 +45,7 @@ export default function Dashboard() {
   const [view, setView] = useState('leads');
   const [expandedIdx, setExpandedIdx] = useState(null);
   const [savingId, setSavingId] = useState(null);
+  const [loadingPlan, setLoadingPlan] = useState(null);
 
   const fetchSavedLeads = useCallback(async (uid) => {
     try {
@@ -137,9 +138,89 @@ export default function Dashboard() {
       });
       const data = await res.json();
       if (data.error) { alert(data.error); }
-      else if (data.leads) { setLeads(data.leads); if (user) fetchProfile(user.id); }
+      else if (data.leads) { 
+        setLeads(data.leads); 
+        if (user) {
+          fetchProfile(user.id);
+        }
+      }
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
+  };
+
+  const handleCheckout = async (planId) => {
+    if (planId === 'free') {
+      setView('leads');
+      return;
+    }
+    if (!user) {
+      router.push('/signup');
+      return;
+    }
+    setLoadingPlan(planId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify({ planId, userId: user.id })
+      });
+      const data = await res.json();
+
+      if (data.error) throw new Error(data.error);
+
+      const options = {
+        key: data.key_id,
+        amount: data.amount,
+        currency: data.currency,
+        name: "LeadSnap",
+        description: `Upgrade to ${planId} Plan`,
+        order_id: data.id,
+        handler: async function (response) {
+          const verifyRes = await fetch('/api/checkout/verify', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session?.access_token}`
+            },
+            body: JSON.stringify({
+              ...response,
+              planId,
+              userId: user.id
+            })
+          });
+          const verifyData = await verifyRes.json();
+          if (verifyData.success) {
+            alert('Payment successful! Your account has been upgraded.');
+            fetchProfile(user.id);
+            setView('leads');
+          } else {
+            alert('Payment verification failed. Please contact support.');
+          }
+        },
+        prefill: {
+          email: user.email,
+        },
+        theme: {
+          color: "#10b981",
+        },
+      };
+
+      if (!window.Razorpay) {
+        alert('Razorpay SDK failed to load. Please check your internet connection or disable ad blockers.');
+        return;
+      }
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err) {
+      console.error('Checkout Error:', err);
+      alert(`Checkout failed: ${err.message || 'Please try again.'}`);
+    } finally {
+      setLoadingPlan(null);
+    }
   };
 
   const handleSave = async (lead) => {
@@ -264,7 +345,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-slate-50 flex font-sans">
       {/* Sidebar */}
-      <aside className="w-72 bg-white border-r border-slate-200 hidden lg:flex flex-col sticky top-0 h-screen">
+      <aside className="w-72 bg-white border-r border-slate-200 hidden lg:flex flex-col sticky top-0 h-screen overflow-y-auto">
         <div className="p-8 border-b border-slate-100">
           <div className="flex items-center gap-3 mb-8">
             <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-emerald-200">
@@ -398,8 +479,11 @@ export default function Dashboard() {
                       </li>
                     ))}
                   </ul>
-                  <button className={`btn w-full py-4 ${plan.premium ? 'btn-primary shadow-xl shadow-emerald-100' : 'btn-outline'}`}>
-                    {plan.cta}
+                  <button 
+                    disabled={loadingPlan !== null}
+                    onClick={() => handleCheckout(plan.name.toLowerCase())}
+                    className={`btn w-full py-4 ${plan.premium ? 'btn-primary shadow-xl shadow-emerald-100' : 'btn-outline'}`}>
+                    {loadingPlan === plan.name.toLowerCase() ? 'Processing...' : plan.cta}
                   </button>
                 </div>
               ))}
