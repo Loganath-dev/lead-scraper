@@ -22,22 +22,39 @@ export default function AuthPage({ type = 'login' }) {
     setError(null);
     setMessage(null);
 
-    if (type === 'login') {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) setError(error.message);
-      else router.push('/dashboard');
-    } else {
+    if (type === 'signup') {
+      if (password.length < 8) {
+        setError('Password must be at least 8 characters long.');
+        setLoading(false);
+        return;
+      }
+      if (!/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+        setError('Password must contain at least one uppercase letter and one number.');
+        setLoading(false);
+        return;
+      }
       if (!acceptedTerms) {
         setError('You must accept the Privacy Policy and Terms and Conditions.');
         setLoading(false);
         return;
       }
+    }
+
+    if (type === 'login') {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        // Use a generic error message for security to prevent account enumeration
+        setError('Invalid login credentials. Please try again.');
+      } else {
+        router.push('/dashboard');
+      }
+    } else {
       const { data, error } = await supabase.auth.signUp({ 
         email, 
         password,
         options: {
           data: {
-            full_name: email.split('@')[0], // Basic default
+            full_name: email.split('@')[0],
           }
         }
       });

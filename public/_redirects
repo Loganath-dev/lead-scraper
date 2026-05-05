@@ -1,0 +1,2 @@
+http://leadsnapp.com/* https://leadsnapp.com/:splat 301!
+http://www.leadsnapp.com/* https://leadsnapp.com/:splat 301!

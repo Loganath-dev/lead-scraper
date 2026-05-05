@@ -1,21 +1,33 @@
-import { Resend } from 'resend';
+import { createServerClient } from '@/lib/supabase-server';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Simple in-memory rate limiting (Note: This is reset on every serverless execution, 
+// but provides a basic layer of protection in a single execution context)
+const rateLimit = new Map();
+
 export async function POST(req) {
   try {
-    const origin = req.headers.get('origin') || req.headers.get('referer');
-    const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL || 'https://leadsnap.app';
-    
-    if (process.env.NODE_ENV === 'production' && !origin?.includes(allowedOrigin.replace('https://', ''))) {
-      return new Response(JSON.stringify({ error: 'Unauthorized request origin' }), { status: 403 });
+    const supabase = await createServerClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized. Please log in.' }), { status: 401 });
     }
 
     const { email } = await req.json();
 
-    if (!email) {
-      return new Response(JSON.stringify({ error: 'Email is required' }), { status: 400 });
+    if (!email || email !== user.email) {
+      return new Response(JSON.stringify({ error: 'Invalid email address' }), { status: 400 });
     }
+
+    // Basic rate limit check
+    const now = Date.now();
+    const lastRequest = rateLimit.get(user.id) || 0;
+    if (now - lastRequest < 60000) { // 1 minute cooldown per user
+      return new Response(JSON.stringify({ error: 'Too many requests. Please wait.' }), { status: 429 });
+    }
+    rateLimit.set(user.id, now);
 
     const { data, error } = await resend.emails.send({
       from: 'LeadSnap <onboarding@resend.dev>', // Use resend's testing domain by default until custom domain is verified

@@ -1,22 +1,26 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient, getAuthenticatedUser } from '@/lib/supabase-server';
 import axios from 'axios';
 import { z } from 'zod';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const supabase = createAdminClient();
 
 const GOOGLE_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 
-async function getAuthUserId(req) {
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
-  const token = authHeader.split(' ')[1];
-  const { data: { user }, error } = await supabase.auth.getUser(token);
-  if (error || !user) return null;
-  return user.id;
+// Rate limit map: userId -> [timestamps]
+const searchRateLimit = new Map();
+const MAX_SEARCHES_PER_MINUTE = 5;
+
+async function checkRateLimit(userId) {
+  const now = Date.now();
+  const timestamps = searchRateLimit.get(userId) || [];
+  const recent = timestamps.filter(t => now - t < 60000);
+  
+  if (recent.length >= MAX_SEARCHES_PER_MINUTE) return false;
+  
+  recent.push(now);
+  searchRateLimit.set(userId, recent);
+  return true;
 }
 
 const SearchSchema = z.object({
@@ -31,10 +35,16 @@ const SearchSchema = z.object({
 
 export async function POST(req) {
   try {
-    const userId = await getAuthUserId(req);
-    if (!userId) {
-      console.warn(`[SECURITY] Unauthorized search attempt from IP: ${req.headers.get('x-forwarded-for') || 'unknown'}`);
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+      console.warn(`[SECURITY] Unauthorized search attempt`);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId = user.id;
+
+    if (!(await checkRateLimit(userId))) {
+      return NextResponse.json({ error: 'Too many searches. Please wait a minute.' }, { status: 429 });
     }
 
     const body = await req.json();

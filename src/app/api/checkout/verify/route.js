@@ -1,24 +1,42 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { createClient } from '@supabase/supabase-js';
+import { createAdminClient, getAuthenticatedUser } from '@/lib/supabase-server';
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const supabaseAdmin = createAdminClient();
 
 export async function POST(req) {
   try {
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { 
       razorpay_order_id, 
       razorpay_payment_id, 
       razorpay_signature,
       planId,
-      userId
+      userId: bodyUserId
     } = await req.json();
 
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !planId || !userId) {
+    // Verify the user is acting on their own account
+    if (bodyUserId !== user.id) {
+      return NextResponse.json({ error: 'User mismatch' }, { status: 403 });
+    }
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !planId) {
       return NextResponse.json({ error: 'Missing payment details' }, { status: 400 });
+    }
+
+    // Idempotency check: Check if this payment_id has already been processed
+    const { data: existingPayment } = await supabaseAdmin
+      .from('payments') // Assuming there's a payments table
+      .select('id')
+      .eq('payment_id', razorpay_payment_id)
+      .single();
+
+    if (existingPayment) {
+      return NextResponse.json({ error: 'Payment already processed' }, { status: 400 });
     }
 
     // Verify Signature
